@@ -17,7 +17,8 @@ class Aldap:
 		self.groupCaseSensitive = groupCaseSensitive
 		self.groupConditional = groupConditional.lower()
 
-		ldap.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER)
+		ldap.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER )
+		ldap.set_option(ldap.OPT_PROTOCOL_VERSION, 3)
 		self.connect = ldap.initialize(self.ldapEndpoint)
 		self.connect.set_option(ldap.OPT_REFERRALS, 0)
 		self.connect.set_option(ldap.OPT_DEBUG_LEVEL, 255)
@@ -28,22 +29,28 @@ class Aldap:
 		self.username = username
 		self.password = password
 		# Replace in the filter the variable "{username}" for the username
-		self.searchFilter = self.searchFilter.replace("{username}", self.username)
+		finalUsername = re.sub(r'^.+\\','', self.username)
+		self.searchFilter = self.searchFilter.replace("{username}", finalUsername)
 
 	def search(self):
-		self.log.info(f"Searching by filter: {self.searchFilter}")
+		self.log.debug(f"Searching Groups by filter: {self.searchFilter}")
+
 		start = time.time()
 		result = ""
 		try:
-			self.connect.simple_bind_s(self.dnUsername, self.dnPassword)
+			self.connect.simple_bind_s(self.username, self.password)
+			# Org not working
+			#self.connect.simple_bind_s("self.dnUsername", self.dnPassword)
 			result = self.connect.search_s(self.searchBase, ldap.SCOPE_SUBTREE, self.searchFilter)
 			#self.connect.unbind_s()
 		except ldap.LDAPError as e:
-			self.log.error("There was an error when trying to bind.")
+			self.log.error("There was an error when trying to bind for groups search.")
 			self.log.error(e)
 
 		self.log.info(f"Time: {time.time()-start}")
 		return result
+        
+		self.log.debug(f"Objects of User: {result!r}")
 
 	def decode(self, word:bytes):
 		return word.decode("utf-8")
@@ -75,6 +82,8 @@ class Aldap:
 				except TypeError:
 					None
 		userGroups = list(map(self.decode,userGroups))
+		
+		self.log.debug(f"List User groups: {userGroups!r}")
 
 		self.log.info(f"Validating the following groups: {groups}")
 		self.log.info(f"Conditional: {self.groupConditional}")

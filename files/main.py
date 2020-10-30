@@ -146,10 +146,10 @@ def login(username, password):
 @auth.login_required
 def index(path):
 	code = 200
-	msg = "Another LDAP Auth"
+	msg = "LDAP Auth"
 	headers = [('x-username', g.username),('x-groups', g.matchesGroups)]
 	return msg, code, headers
 
 # Main
 if __name__ == '__main__':
-	app.run(host='0.0.0.0', port=9000, debug=False)
+	app.run(host='0.0.0.0', port=9000, debug=True)
